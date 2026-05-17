@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Pointer",
+  "version": "1.0.0",
+  "description": "Blinks a cursor on click, remembers positions, navigate with Alt+Arrow keys.",
+  "permissions": ["storage", "activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Pointer",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "commands": {
+    "navigate-back": {
+      "suggested_key": {
+        "default": "Alt+Left",
+        "mac": "Alt+Left"
+      },
+      "description": "Navigate to previous click position"
+    },
+    "navigate-forward": {
+      "suggested_key": {
+        "default": "Alt+Right",
+        "mac": "Alt+Right"
+      },
+      "description": "Navigate to next click position"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
