@@ -286,21 +286,22 @@
           right: 16px;
           z-index: 2147483647;
           display: flex;
-          gap: 6px;
-          background: rgba(15, 23, 42, 0.85);
-          border: 1px solid rgba(99, 102, 241, 0.35);
-          border-radius: 10px;
-          padding: 6px 8px;
-          backdrop-filter: blur(10px);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+          align-items: center;
+          gap: 4px;
+          background: rgba(15, 23, 42, 0.88);
+          border: 1px solid rgba(99, 102, 241, 0.3);
+          border-radius: 12px;
+          padding: 5px 8px;
+          backdrop-filter: blur(12px);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 1px rgba(99,102,241,0.2);
           opacity: 0;
-          transform: translateY(-6px);
-          transition: opacity 0.25s, transform 0.25s;
+          transform: translateY(-8px) scale(0.96);
+          transition: opacity 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1);
           pointer-events: none;
         }
         #bar.visible {
           opacity: 1;
-          transform: translateY(0);
+          transform: translateY(0) scale(1);
           pointer-events: all;
         }
         button {
@@ -310,18 +311,33 @@
           justify-content: center;
           width: 30px;
           height: 30px;
-          border-radius: 7px;
+          border-radius: 8px;
           color: #94a3b8;
           cursor: pointer;
-          transition: background 0.15s, color 0.15s;
+          transition: background 0.15s, color 0.15s, transform 0.1s;
         }
-        button:hover  { background: rgba(99,102,241,0.2); color: #e2e8f0; }
-        button:active { background: rgba(99,102,241,0.35); }
+        button:hover:not(:disabled)  { background: rgba(99,102,241,0.2); color: #e2e8f0; }
+        button:active:not(:disabled) { background: rgba(99,102,241,0.35); transform: scale(0.93); }
         button:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+        #counter {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 38px;
+          height: 26px;
+          padding: 0 6px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          font-size: 11px;
+          font-weight: 600;
+          color: #a5b4fc;
+          letter-spacing: 0.3px;
+          user-select: none;
+        }
         .divider {
           width: 1px;
-          background: rgba(255,255,255,0.1);
-          margin: 4px 0;
+          height: 18px;
+          background: rgba(255,255,255,0.08);
+          border-radius: 1px;
         }
       </style>
       <div id="bar">
@@ -330,6 +346,7 @@
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
+        <span id="counter"></span>
         <button id="btn-forward" title="Forward (Alt+→)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 18 15 12 9 6"/>
@@ -348,6 +365,7 @@
     const btnBack = shadow.getElementById("btn-back");
     const btnFwd = shadow.getElementById("btn-forward");
     const btnClr = shadow.getElementById("btn-clear");
+    const counter = shadow.getElementById("counter");
 
     btnBack.addEventListener("click", async () => {
       await goBack();
@@ -371,6 +389,9 @@
       bar.classList.toggle("visible", hasHistory);
       btnBack.disabled = currentIndex <= 0;
       btnFwd.disabled = currentIndex >= clickHistory.length - 1;
+      // Show position counter like "3 / 12"
+      const total = clickHistory.length;
+      counter.textContent = total > 0 ? `${currentIndex + 1} / ${total}` : "";
     }
 
     // Expose so history changes can update button states

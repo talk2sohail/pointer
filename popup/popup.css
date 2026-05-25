@@ -6,16 +6,43 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    width: 320px;
+    width: 340px;
     min-height: 100px;
     background: #0f172a;
     color: #e2e8f0;
 }
 
+/* ── Header ───────────────────────────────────────────────── */
+
 header {
-    padding: 14px 16px 8px;
+    padding: 14px 16px 12px;
     border-bottom: 1px solid #1e293b;
 }
+
+.header-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo {
+    font-size: 22px;
+    line-height: 1;
+}
+
+h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+}
+
+.stats {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 1px;
+}
+
+/* ── Banner ───────────────────────────────────────────────── */
 
 #banner {
     margin: 8px 12px;
@@ -32,46 +59,54 @@ header {
     display: none;
 }
 
-h1 {
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.subtitle {
-    font-size: 11px;
-    color: #64748b;
-    margin-top: 2px;
-}
+/* ── Controls ─────────────────────────────────────────────── */
 
 #controls {
     display: flex;
     gap: 6px;
-    padding: 10px 16px;
+    padding: 10px 12px;
     border-bottom: 1px solid #1e293b;
 }
 
-button {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #334155;
-    border-radius: 6px;
-    background: #1e293b;
-    color: #e2e8f0;
-    cursor: pointer;
-    transition: background 0.15s;
+#controls button {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 5px;
+    padding: 7px 10px;
+    border: 1px solid #334155;
+    border-radius: 7px;
+    background: #1e293b;
+    color: #cbd5e1;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition:
+        background 0.15s,
+        border-color 0.15s;
+    white-space: nowrap;
 }
 
-button:hover {
+#controls button:hover:not(:disabled) {
     background: #334155;
+    border-color: #475569;
 }
 
-button:disabled {
-    opacity: 0.35;
+#controls button:active:not(:disabled) {
+    background: #1e293b;
+}
+
+#controls button:disabled {
+    opacity: 0.3;
     cursor: not-allowed;
 }
+
+#controls .btn-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+}
+
+/* ── History List ─────────────────────────────────────────── */
 
 #history-list {
     list-style: none;
@@ -80,10 +115,13 @@ button:disabled {
 }
 
 #history-list li {
-    padding: 10px 16px;
+    padding: 10px 12px;
     border-bottom: 1px solid #1e293b;
     cursor: pointer;
     transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 #history-list li:hover {
@@ -91,21 +129,38 @@ button:disabled {
 }
 
 #history-list li.active {
+    background: rgba(99, 102, 241, 0.1);
     border-left: 3px solid #6366f1;
-    padding-left: 13px;
+    padding-left: 9px;
 }
 
-#history-list li.empty {
-    color: #475569;
-    font-size: 13px;
-    text-align: center;
-    padding: 24px 16px;
-    cursor: default;
+/* ── Favicon pill ─────────────────────────────────────────── */
+
+.entry-favicon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #e2e8f0;
+    background: #334155;
+    text-transform: uppercase;
+}
+
+/* ── Entry body ───────────────────────────────────────────── */
+
+.entry-body {
+    flex: 1;
+    min-width: 0;
 }
 
 .entry-url {
     font-size: 12px;
-    color: #a5b4fc;
+    color: #94a3b8;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -114,5 +169,84 @@ button:disabled {
 .entry-meta {
     font-size: 11px;
     color: #475569;
-    margin-top: 2px;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.entry-index {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.12);
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.2px;
+}
+
+/* ── Page separator ───────────────────────────────────────── */
+
+.page-sep {
+    padding: 6px 12px !important;
+    font-size: 10px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(15, 23, 42, 0.6);
+    cursor: default !important;
+    border-bottom: 1px solid #1e293b;
+    display: block !important;
+}
+
+.page-sep:hover {
+    background: rgba(15, 23, 42, 0.6) !important;
+}
+
+/* ── Empty state ──────────────────────────────────────────── */
+
+#history-list li.empty {
+    color: #475569;
+    font-size: 13px;
+    text-align: center;
+    padding: 32px 16px;
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.empty-icon {
+    font-size: 32px;
+    margin-bottom: 4px;
+    opacity: 0.6;
+}
+
+.empty-hint {
+    font-size: 11px;
+    color: #334155;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+
+footer {
+    padding: 10px 16px;
+    border-top: 1px solid #1e293b;
+    font-size: 11px;
+    color: #475569;
+    text-align: center;
+}
+
+footer kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 4px;
 }

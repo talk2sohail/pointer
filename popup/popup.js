@@ -1,5 +1,30 @@
 const STORAGE_KEY = "pointer_history";
 
+// ── Colour palette for domain favicon pills ──────────────────────────────
+const DOMAIN_COLORS = [
+  { bg: "#4f46e5", fg: "#e0e7ff" }, // indigo
+  { bg: "#0d9488", fg: "#ccfbf1" }, // teal
+  { bg: "#d97706", fg: "#fef3c7" }, // amber
+  { bg: "#dc2626", fg: "#fee2e2" }, // red
+  { bg: "#7c3aed", fg: "#ede9fe" }, // violet
+  { bg: "#059669", fg: "#d1fae5" }, // emerald
+  { bg: "#ea580c", fg: "#fff7ed" }, // orange
+  { bg: "#2563eb", fg: "#dbeafe" }, // blue
+];
+
+const domainColorMap = {};
+let colorIdx = 0;
+
+function colorForDomain(hostname) {
+  if (!domainColorMap[hostname]) {
+    domainColorMap[hostname] = DOMAIN_COLORS[colorIdx % DOMAIN_COLORS.length];
+    colorIdx++;
+  }
+  return domainColorMap[hostname];
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
 async function loadState() {
   const result = await chrome.storage.local.get(STORAGE_KEY);
   return result[STORAGE_KEY] || { entries: [], index: -1 };
@@ -16,7 +41,7 @@ async function getActiveTab() {
 
 async function sendToPage(msg) {
   const tab = await getActiveTab();
-  if (!tab) return;
+  if (!tab) return false;
   try {
     await chrome.tabs.sendMessage(tab.id, msg);
     return true;
@@ -30,25 +55,44 @@ function formatTime(ts) {
   return d.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
   });
+}
+
+function domainLetter(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host[0] || "?";
+  } catch (_) {
+    return "?";
+  }
 }
 
 function shortUrl(url) {
   try {
     const u = new URL(url);
-    return (
-      u.hostname + u.pathname.slice(0, 30) + (u.pathname.length > 30 ? "…" : "")
-    );
+    const path = u.pathname === "/" ? "" : u.pathname.slice(0, 30);
+    const trail = u.pathname.length > 30 ? "\u2026" : "";
+    return u.hostname.replace(/^www\./, "") + path + trail;
   } catch (_) {
     return url.slice(0, 40);
   }
 }
 
+function uniquePages(entries) {
+  const seen = new Set();
+  let count = 0;
+  for (const e of entries) {
+    if (!seen.has(e.url)) {
+      seen.add(e.url);
+      count++;
+    }
+  }
+  return count;
+}
+
 async function checkConnectivity() {
   const tab = await getActiveTab();
   if (!tab) return false;
-  // Pages like chrome://, edge://, about: can't host content scripts.
   if (!tab.url || !/^(https?:|file:)/i.test(tab.url)) return false;
   try {
     await chrome.tabs.sendMessage(tab.id, { action: "ping" });
@@ -58,37 +102,78 @@ async function checkConnectivity() {
   }
 }
 
+// ── Render ───────────────────────────────────────────────────────────────
+
 async function render() {
   const state = await loadState();
   const { entries, index } = state;
   const list = document.getElementById("history-list");
   const banner = document.getElementById("banner");
+  const stats = document.getElementById("stats");
 
   document.getElementById("btn-back").disabled = index <= 0;
   document.getElementById("btn-forward").disabled = index >= entries.length - 1;
 
-  // Show a banner when the content script can't be reached on this tab.
+  // Stats bar
+  if (entries.length > 0) {
+    const pages = uniquePages(entries);
+    const posWord = entries.length === 1 ? "position" : "positions";
+    const pageWord = pages === 1 ? "page" : "pages";
+    stats.textContent = `${entries.length} ${posWord} across ${pages} ${pageWord}`;
+  } else {
+    stats.textContent = "Click History";
+  }
+
+  // Connectivity banner
   const online = await checkConnectivity();
   banner.classList.toggle("hidden", online);
 
+  // Empty state
   if (entries.length === 0) {
-    list.innerHTML = '<li class="empty">No clicks recorded yet.</li>';
+    list.innerHTML = `
+      <li class="empty">
+        <div class="empty-icon">🎯</div>
+        <p>No clicks recorded yet.</p>
+        <p class="empty-hint">Click on any text on the page to start.</p>
+      </li>`;
     return;
   }
 
-  // Show newest first; track original index for navigation
-  list.innerHTML = [...entries]
+  // Build list with page separators (newest first)
+  let lastUrl = null;
+  const html = [...entries]
     .map((e, i) => ({ e, i }))
     .reverse()
-    .map(
-      ({ e, i }) => `
-      <li class="${i === index ? "active" : ""}" data-index="${i}" title="Jump to this position">
-        <div class="entry-url">${shortUrl(e.url)}</div>
-        <div class="entry-meta">${formatTime(e.timestamp)}</div>
-      </li>
-    `,
-    )
+    .map(({ e, i }) => {
+      const hostname = shortUrl(e.url);
+      const letter = domainLetter(e.url);
+      const color = colorForDomain(hostname);
+      const isActive = i === index;
+      const showSep = e.url !== lastUrl;
+      lastUrl = e.url;
+
+      let sep = "";
+      if (showSep) {
+        sep = `<li class="page-sep">${hostname}</li>`;
+      }
+
+      return (
+        sep +
+        `<li class="${isActive ? "active" : ""}" data-index="${i}" title="Jump to position ${i + 1}">
+          <span class="entry-favicon" style="background:${color.bg};color:${color.fg}">${letter}</span>
+          <div class="entry-body">
+            <div class="entry-url">${shortUrl(e.url)}</div>
+            <div class="entry-meta">
+              <span class="entry-index">#${i + 1}</span>
+              <span>${formatTime(e.timestamp)}</span>
+            </div>
+          </div>
+        </li>`
+      );
+    })
     .join("");
+
+  list.innerHTML = html;
 
   list.querySelectorAll("li[data-index]").forEach((li) => {
     li.addEventListener("click", async () => {
@@ -97,6 +182,8 @@ async function render() {
     });
   });
 }
+
+// ── Controls ─────────────────────────────────────────────────────────────
 
 document.getElementById("btn-back").addEventListener("click", async () => {
   await sendToPage({ action: "back" });
@@ -108,6 +195,9 @@ document.getElementById("btn-forward").addEventListener("click", async () => {
 
 document.getElementById("btn-clear").addEventListener("click", async () => {
   await saveState({ entries: [], index: -1 });
+  // Reset domain colour map so new entries get fresh assignments
+  for (const k of Object.keys(domainColorMap)) delete domainColorMap[k];
+  colorIdx = 0;
   render();
 });
 
