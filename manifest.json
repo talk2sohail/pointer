@@ -3,7 +3,7 @@
   "name": "Pointer",
   "version": "1.0.0",
   "description": "Blinks a cursor on click, remembers positions, navigate with Alt+Arrow keys.",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "tabs"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

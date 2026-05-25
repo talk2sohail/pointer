@@ -198,6 +198,40 @@ async function render() {
   list.querySelectorAll("li[data-index]").forEach((li) => {
     li.addEventListener("click", async () => {
       const i = parseInt(li.dataset.index, 10);
+      const entry = entries[i];
+      if (!entry) return;
+
+      const activeTab = await getActiveTab();
+
+      // If the entry is on the same page, just jump to position.
+      if (entry.url === activeTab?.url) {
+        await sendToPage({ action: "goto", index: i });
+        return;
+      }
+
+      // Look for an already-open tab with this URL.
+      const existing = await chrome.tabs.query({ url: entry.url });
+      if (existing.length > 0) {
+        // Switch to the existing tab and position the cursor.
+        const tab = existing[0];
+        await chrome.tabs.update(tab.id, { active: true });
+        await chrome.windows.update(tab.windowId, { focused: true });
+        // Send position directly — the content script in that tab is ready.
+        chrome.tabs
+          .sendMessage(tab.id, {
+            action: "gotoPosition",
+            x: entry.x,
+            y: entry.y,
+            height: entry.height,
+            scrollX: entry.scrollX,
+            scrollY: entry.scrollY,
+          })
+          .catch(() => {});
+        window.close();
+        return;
+      }
+
+      // No open tab — navigate the current tab.
       await sendToPage({ action: "goto", index: i });
     });
   });

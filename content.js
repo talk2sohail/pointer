@@ -535,6 +535,19 @@
       syncWidget();
       sendResponse({ ok: true });
     }
+    if (msg.action === "gotoPosition") {
+      isNavigating = true;
+      window.scrollTo({
+        left: msg.scrollX || 0,
+        top: msg.scrollY || 0,
+        behavior: "smooth",
+      });
+      setTimeout(() => {
+        showMarker(null, msg.x, msg.y, msg.height || 18);
+        isNavigating = false;
+      }, 400);
+      sendResponse({ ok: true });
+    }
     if (msg.action === "toggle") {
       setTracking(msg.enabled);
       syncWidget();
