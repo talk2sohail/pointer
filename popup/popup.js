@@ -1,4 +1,5 @@
 const STORAGE_KEY = "pointer_history";
+const TRACKING_KEY = "pointer_tracking";
 
 // ── Colour palette for domain favicon pills ──────────────────────────────
 const DOMAIN_COLORS = [
@@ -102,6 +103,11 @@ async function checkConnectivity() {
   }
 }
 
+async function loadTracking() {
+  const result = await chrome.storage.local.get(TRACKING_KEY);
+  return result[TRACKING_KEY] !== undefined ? result[TRACKING_KEY] : true;
+}
+
 // ── Render ───────────────────────────────────────────────────────────────
 
 async function render() {
@@ -127,6 +133,20 @@ async function render() {
   // Connectivity banner
   const online = await checkConnectivity();
   banner.classList.toggle("hidden", online);
+
+  // Tracking toggle — sync with stored state
+  const tracking = await loadTracking();
+  const toggleBtn = document.getElementById("btn-toggle-track");
+  toggleBtn.className = tracking ? "btn-toggle on" : "btn-toggle off";
+  toggleBtn.title = tracking
+    ? "Tracking on — click to pause"
+    : "Tracking paused — click to resume";
+  // Disable nav/clear when tracking is off
+  if (!tracking) {
+    document.getElementById("btn-back").disabled = true;
+    document.getElementById("btn-forward").disabled = true;
+    document.getElementById("btn-clear").disabled = true;
+  }
 
   // Empty state
   if (entries.length === 0) {
@@ -185,6 +205,16 @@ async function render() {
 
 // ── Controls ─────────────────────────────────────────────────────────────
 
+document
+  .getElementById("btn-toggle-track")
+  .addEventListener("click", async () => {
+    const cur = await loadTracking();
+    const next = !cur;
+    await chrome.storage.local.set({ [TRACKING_KEY]: next });
+    await sendToPage({ action: "toggle", enabled: next });
+    render();
+  });
+
 document.getElementById("btn-back").addEventListener("click", async () => {
   await sendToPage({ action: "back" });
 });
@@ -205,5 +235,6 @@ render();
 
 // Refresh popup automatically when content script writes new history
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes[STORAGE_KEY]) render();
+  if (area === "local" && (changes[STORAGE_KEY] || changes[TRACKING_KEY]))
+    render();
 });

@@ -1,6 +1,7 @@
 (() => {
   const MAX_HISTORY = 50;
   const STORAGE_KEY = "pointer_history";
+  const TRACKING_KEY = "pointer_tracking";
 
   // ─── Content Detection ────────────────────────────────────────────────────
 
@@ -87,6 +88,39 @@
   const DEBOUNCE_MS = 300;
   const DEBOUNCE_PX = 20;
   let lastClick = { x: -1, y: -1, ts: 0 };
+
+  // ─── Tracking Toggle ──────────────────────────────────────────────────
+
+  let trackingEnabled = true;
+
+  async function loadTracking() {
+    try {
+      const result = await chrome.storage.local.get(TRACKING_KEY);
+      if (result[TRACKING_KEY] !== undefined) {
+        trackingEnabled = result[TRACKING_KEY];
+      }
+    } catch (_) {}
+  }
+
+  async function saveTracking() {
+    try {
+      await chrome.storage.local.set({ [TRACKING_KEY]: trackingEnabled });
+    } catch (_) {}
+  }
+
+  function setTracking(on) {
+    trackingEnabled = on;
+    saveTracking();
+    syncWidget();
+    if (!on) {
+      // Remove any visible caret when tracking is turned off.
+      if (activeCaret) {
+        activeCaret.remove();
+        activeCaret = null;
+        activeRange = null;
+      }
+    }
+  }
 
   async function loadHistory() {
     try {
@@ -321,6 +355,14 @@
         button:hover:not(:disabled)  { background: rgba(99,102,241,0.2); color: #e2e8f0; }
         button:active:not(:disabled) { background: rgba(99,102,241,0.35); transform: scale(0.93); }
         button:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+        #btn-toggle {
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+        }
+        #btn-toggle svg { transition: opacity 0.2s; }
+        #btn-toggle.on  { color: #a5b4fc; }
+        #btn-toggle.off { color: #475569; }
         #counter {
           display: flex;
           align-items: center;
@@ -343,6 +385,12 @@
         }
       </style>
       <div id="bar">
+        <button id="btn-toggle" title="Toggle tracking">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <circle cx="12" cy="12" r="4"/>
+          </svg>
+        </button>
+        <div class="divider"></div>
         <button id="btn-back" title="Back (Alt+←)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"/>
@@ -364,10 +412,15 @@
     `;
 
     const bar = shadow.getElementById("bar");
+    const btnToggle = shadow.getElementById("btn-toggle");
     const btnBack = shadow.getElementById("btn-back");
     const btnFwd = shadow.getElementById("btn-forward");
     const btnClr = shadow.getElementById("btn-clear");
     const counter = shadow.getElementById("counter");
+
+    btnToggle.addEventListener("click", () => {
+      setTracking(!trackingEnabled);
+    });
 
     btnBack.addEventListener("click", async () => {
       await goBack();
@@ -388,12 +441,24 @@
 
     function syncWidget() {
       const hasHistory = clickHistory.length > 0;
-      bar.classList.toggle("visible", hasHistory);
-      btnBack.disabled = currentIndex <= 0;
-      btnFwd.disabled = currentIndex >= clickHistory.length - 1;
-      // Show position counter like "3 / 12"
+      // Show bar when tracking is off (so toggle is accessible) or there's history.
+      bar.classList.toggle("visible", !trackingEnabled || hasHistory);
+      btnToggle.className = trackingEnabled ? "on" : "off";
+      btnToggle.title = trackingEnabled
+        ? "Tracking on — click to pause"
+        : "Tracking paused — click to resume";
+      // Nav buttons disabled when tracking is off or at bounds.
+      const navDisabled = !trackingEnabled;
+      btnBack.disabled = navDisabled || currentIndex <= 0;
+      btnFwd.disabled = navDisabled || currentIndex >= clickHistory.length - 1;
+      btnClr.disabled = navDisabled;
       const total = clickHistory.length;
-      counter.textContent = total > 0 ? `${currentIndex + 1} / ${total}` : "";
+      counter.textContent =
+        total > 0
+          ? `${currentIndex + 1} / ${total}`
+          : trackingEnabled
+            ? ""
+            : "Paused";
     }
 
     // Expose so history changes can update button states
@@ -407,6 +472,7 @@
   document.addEventListener(
     "click",
     (e) => {
+      if (!trackingEnabled) return;
       if (!hasContentAt(e.clientX, e.clientY, e.target)) return;
 
       const range =
@@ -469,10 +535,18 @@
       syncWidget();
       sendResponse({ ok: true });
     }
+    if (msg.action === "toggle") {
+      setTracking(msg.enabled);
+      syncWidget();
+      sendResponse({ ok: true, enabled: trackingEnabled });
+    }
+    if (msg.action === "getState") {
+      sendResponse({ enabled: trackingEnabled });
+    }
     return true;
   });
 
   // ─── Init ─────────────────────────────────────────────────────────────────
 
-  loadHistory().then(syncWidget);
+  Promise.all([loadHistory(), loadTracking()]).then(syncWidget);
 })();
