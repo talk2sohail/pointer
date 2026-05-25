@@ -204,7 +204,9 @@
 
   function spawnGhost(x, y, height) {
     const g = document.createElement("div");
-    g.className = "pointer-ghost";
+    // Match ghost colour to the active caret: red for marker, indigo for click.
+    const isMarker = activeCaret && activeCaret.className === "pointer-marker";
+    g.className = isMarker ? "pointer-ghost-marker" : "pointer-ghost";
     applyPosition(g, x, y, height);
     document.body.appendChild(g);
     g.addEventListener("animationend", () => g.remove());
