@@ -1,0 +1,16 @@
+{
+  "name": "pointer",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:content && npm run build:popup",
+    "build:content": "esbuild src/content/index.js --bundle --format=iife --outfile=dist/content.js",
+    "build:popup": "esbuild src/popup/index.js --bundle --format=iife --outfile=popup/popup.js",
+    "watch:content": "esbuild src/content/index.js --bundle --format=iife --outfile=dist/content.js --watch",
+    "watch:popup": "esbuild src/popup/index.js --bundle --format=iife --outfile=popup/popup.js --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
