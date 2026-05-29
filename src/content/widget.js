@@ -9,7 +9,7 @@ let syncWidget = null;
 export function build() {
   const host = document.createElement("div");
   host.id = "pointer-widget-host";
-  const shadow = host.attachShadow({ mode: "closed" });
+  const shadow = host.attachShadow({ mode: "open" });
 
   shadow.innerHTML = `
     <style>
@@ -125,12 +125,14 @@ export function build() {
   const btnClr = shadow.getElementById("btn-clear");
   const counter = shadow.getElementById("counter");
 
-  btnToggle.addEventListener("click", () => {
+  btnToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
     const next = !tracking.isEnabled();
     tracking.set(next);
   });
 
-  btnCursor.addEventListener("click", () => {
+  btnCursor.addEventListener("click", (e) => {
+    e.stopPropagation();
     const current = visuals.getCursorType();
     const idx = CURSOR_TYPES.indexOf(current);
     const next = CURSOR_TYPES[(idx + 1) % CURSOR_TYPES.length];
@@ -138,15 +140,18 @@ export function build() {
     sync();
   });
 
-  btnBack.addEventListener("click", () => {
+  btnBack.addEventListener("click", (e) => {
+    e.stopPropagation();
     history.goBack();
   });
 
-  btnFwd.addEventListener("click", () => {
+  btnFwd.addEventListener("click", (e) => {
+    e.stopPropagation();
     history.goForward();
   });
 
-  btnClr.addEventListener("click", () => {
+  btnClr.addEventListener("click", (e) => {
+    e.stopPropagation();
     history.clear();
   });
 
@@ -165,9 +170,10 @@ export function build() {
       : "Tracking paused — click to resume";
 
     btnCursor.classList.toggle("active", cursorType === "fire");
-    btnCursor.title = cursorType === "fire"
-      ? "Cursor: fire — click to switch"
-      : "Cursor: default — click to switch";
+    btnCursor.title =
+      cursorType === "fire"
+        ? "Cursor: fire — click to switch"
+        : "Cursor: default — click to switch";
 
     const navDisabled = !trackingOn;
     btnBack.disabled = navDisabled || index <= 0;
@@ -175,11 +181,7 @@ export function build() {
     btnClr.disabled = navDisabled;
 
     counter.textContent =
-      total > 0
-        ? `${index + 1} / ${total}`
-        : trackingOn
-          ? ""
-          : "Paused";
+      total > 0 ? `${index + 1} / ${total}` : trackingOn ? "" : "Paused";
   }
 
   syncWidget = sync;

@@ -17,6 +17,8 @@ history.setShowNavigatedMarker((x, y, h) => {
 document.addEventListener(
   "click",
   (e) => {
+    // Ignore clicks on the Pointer widget itself (shadow DOM events retarget to host)
+    if (e.target?.id === "pointer-widget-host") return;
     if (!tracking.isEnabled()) return;
     if (history.getIsNavigating()) return;
     if (!hasContentAt(e.clientX, e.clientY, e.target)) return;

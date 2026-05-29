@@ -8,9 +8,12 @@
     "build:content": "esbuild src/content/index.js --bundle --format=iife --outfile=dist/content.js",
     "build:popup": "esbuild src/popup/index.js --bundle --format=iife --outfile=popup/popup.js",
     "watch:content": "esbuild src/content/index.js --bundle --format=iife --outfile=dist/content.js --watch",
-    "watch:popup": "esbuild src/popup/index.js --bundle --format=iife --outfile=popup/popup.js --watch"
+    "watch:popup": "esbuild src/popup/index.js --bundle --format=iife --outfile=popup/popup.js --watch",
+    "test": "xvfb-run -a npx playwright test",
+    "test:headed": "xvfb-run -a npx playwright test --headed"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "esbuild": "^0.25.0"
   }
 }
