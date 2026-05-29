@@ -106,20 +106,20 @@ async function getWidgetState(page) {
     const host = document.getElementById("pointer-widget-host");
     if (!host || !host.shadowRoot) return null;
     const sr = host.shadowRoot;
-    const bar = sr.getElementById("bar");
+    const wrap = sr.getElementById("widget-wrap");
     const toggleBtn = sr.getElementById("btn-toggle");
+    const cursorCurrent = sr.getElementById("cursor-current");
     const backBtn = sr.getElementById("btn-back");
     const fwdBtn = sr.getElementById("btn-forward");
     const clrBtn = sr.getElementById("btn-clear");
-    const cursorBtn = sr.getElementById("btn-cursor");
     const counter = sr.getElementById("counter");
     return {
-      barVisible: bar.classList.contains("visible"),
+      barVisible: wrap.classList.contains("visible"),
       toggleClass: toggleBtn.className,
       backDisabled: backBtn.disabled,
       fwdDisabled: fwdBtn.disabled,
       clrDisabled: clrBtn.disabled,
-      cursorActive: cursorBtn.classList.contains("active"),
+      cursorActive: cursorCurrent.classList.contains("active"),
       counterText: counter.textContent,
     };
   });
@@ -132,6 +132,23 @@ async function clickWidgetButton(page, buttonId) {
     if (!host || !host.shadowRoot) return;
     host.shadowRoot.getElementById(id).click();
   }, buttonId);
+}
+
+/** Select a cursor type from the dropdown panel */
+async function selectCursorType(page, cursorId) {
+  // Open the panel by clicking the cursor indicator button
+  await clickWidgetButton(page, "cursor-current");
+  await page.waitForTimeout(300);
+  // Click the option in the panel
+  await page.evaluate((id) => {
+    const host = document.getElementById("pointer-widget-host");
+    if (!host || !host.shadowRoot) return;
+    const opt = host.shadowRoot
+      .getElementById("cursor-panel")
+      .querySelector(`[data-cursor="${id}"]`);
+    if (opt) opt.click();
+  }, cursorId);
+  await page.waitForTimeout(300);
 }
 
 /** Open the popup and return the page object */
@@ -231,12 +248,13 @@ test.describe("Injection & Bootstrap", () => {
       const host = document.getElementById("pointer-widget-host");
       const sr = host.shadowRoot;
       return [
+        "widget-wrap",
         "bar",
         "btn-toggle",
+        "cursor-current",
         "btn-back",
         "btn-forward",
         "btn-clear",
-        "btn-cursor",
         "counter",
       ].map((id) => !!sr.getElementById(id));
     });
@@ -671,7 +689,7 @@ test.describe("Visuals — Ghost Afterimage", () => {
 // ═══════════════════════════════════════════════════════════════
 
 test.describe("Visuals — Fire Cursor Type", () => {
-  test("cursor cycle button toggles between default and fire cursor", async ({
+  test("cursor dropdown selects fire and applies fire styling", async ({
     pointerPage: page,
   }) => {
     await clickAndWait(page, "#p1");
@@ -680,18 +698,16 @@ test.describe("Visuals — Fire Cursor Type", () => {
     let caret = await getCaretInfo(page);
     expect(caret.className).not.toContain("--fire");
 
-    // Click cursor cycle button
-    await clickWidgetButton(page, "btn-cursor");
-    await page.waitForTimeout(300);
+    // Select fire cursor from dropdown
+    await selectCursorType(page, "fire");
 
     // Click another position to trigger a new caret render
     await clickAndWait(page, "#h1");
     caret = await getCaretInfo(page);
     expect(caret.className).toContain("--fire");
 
-    // Toggle back to default
-    await clickWidgetButton(page, "btn-cursor");
-    await page.waitForTimeout(300);
+    // Switch back to default
+    await selectCursorType(page, "");
     await clickAndWait(page, "#btn1");
     caret = await getCaretInfo(page);
     expect(caret.className).not.toContain("--fire");
@@ -701,8 +717,7 @@ test.describe("Visuals — Fire Cursor Type", () => {
     pointerPage: page,
   }) => {
     await clickAndWait(page, "#p1");
-    await clickWidgetButton(page, "btn-cursor");
-    await page.waitForTimeout(300);
+    await selectCursorType(page, "fire");
 
     await page.click("#h1", { force: true });
     await page.waitForTimeout(100);
@@ -719,8 +734,7 @@ test.describe("Visuals — Fire Cursor Type", () => {
     await clickAndWait(page, "#h1");
 
     // Enable fire cursor
-    await clickWidgetButton(page, "btn-cursor");
-    await page.waitForTimeout(300);
+    await selectCursorType(page, "fire");
 
     // Navigate back — marker should have --fire
     await page.keyboard.press("Alt+ArrowLeft");
@@ -730,7 +744,7 @@ test.describe("Visuals — Fire Cursor Type", () => {
     expect(marker.className).toContain("pointer-marker");
   });
 
-  test("widget cursor button shows active state when fire is selected", async ({
+  test("widget cursor indicator shows active state when fire is selected", async ({
     pointerPage: page,
   }) => {
     await clickAndWait(page, "#p1");
@@ -738,14 +752,12 @@ test.describe("Visuals — Fire Cursor Type", () => {
     let state = await getWidgetState(page);
     expect(state.cursorActive).toBe(false);
 
-    await clickWidgetButton(page, "btn-cursor");
-    await page.waitForTimeout(300);
+    await selectCursorType(page, "fire");
 
     state = await getWidgetState(page);
     expect(state.cursorActive).toBe(true);
 
-    await clickWidgetButton(page, "btn-cursor");
-    await page.waitForTimeout(300);
+    await selectCursorType(page, "");
 
     state = await getWidgetState(page);
     expect(state.cursorActive).toBe(false);
